@@ -138,11 +138,11 @@ func (c *SSMConfiguration) put(key, value string, overwrite bool) error {
 	return err
 }
 
-func convertKeynameToPath(key, env string, delimiter string) string {
+func convertKeynameToPath(key, env, delimiter string) string {
 	return fmt.Sprintf("/%s/%s", env, strings.ReplaceAll(key, delimiter, "/"))
 }
 
-func convertPathToKeyname(path, env string, delimiter, string) string {
+func convertPathToKeyname(path, env, delimiter string) string {
 	key := strings.Replace(path, fmt.Sprintf("/%s/", env), "", 1)
 	key = strings.ReplaceAll(key, "/", delimiter)
 	return key
