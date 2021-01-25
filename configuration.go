@@ -1,4 +1,4 @@
-package configuration
+package goawshelpers
 
 import (
 	"fmt"
