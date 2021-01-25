@@ -21,29 +21,29 @@ type SSMConfiguration struct {
 
 // SSMConfigurationInit helps to initialize SSMConfiguration using a variety of keys
 type SSMConfigurationInit struct {
-	env                string
-	keyDelimitor       string
-	awsAccessKey       string
-	awsSecretAccessKey string
-	useEnvParams       bool
-	region             string
+	Env                string
+	KeyDelimitor       string
+	AwsAccessKey       string
+	AwsSecretAccessKey string
+	UseEnvParams       bool
+	Region             string
 }
 
 // NewSSMConfiguration creates a new instance of SSMConfiguration based on the passed in parameters
 func NewSSMConfiguration(config SSMConfigurationInit) (*SSMConfiguration, error) {
 	var creds *credentials.Credentials
-	region := config.region
+	region := config.Region
 
-	if config.region == "" {
+	if config.Region == "" {
 		region = defaultRegion
 	}
 
-	if !config.useEnvParams {
-		if config.awsAccessKey == "" && config.awsSecretAccessKey == "" {
+	if !config.UseEnvParams {
+		if config.AwsAccessKey == "" && config.AwsSecretAccessKey == "" {
 			return nil, fmt.Errorf("no awsAccessKey and/or awsSecretAccessKey provided")
 		}
 
-		creds = credentials.NewStaticCredentials(config.awsAccessKey, config.awsSecretAccessKey, "")
+		creds = credentials.NewStaticCredentials(config.AwsAccessKey, config.AwsSecretAccessKey, "")
 	} else {
 		creds = credentials.NewEnvCredentials()
 	}
@@ -59,7 +59,7 @@ func NewSSMConfiguration(config SSMConfigurationInit) (*SSMConfiguration, error)
 
 	return &SSMConfiguration{
 		client: ssm.New(session, aws.NewConfig().WithRegion(region)),
-		env:    config.env,
+		env:    config.Env,
 	}, nil
 }
 
