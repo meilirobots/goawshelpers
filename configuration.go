@@ -12,6 +12,16 @@ import (
 
 const defaultRegion = "eu-north-1"
 
+// Configuration interface
+// SSMConfiguration follows this interface
+type Configuration interface {
+	Create(key, value string) error
+	Set(key, value string) error
+	Delete(key string) error
+	Get(key string) (string, error)
+	GetEnvironment() (map[string]string, error)
+}
+
 // SSMConfiguration provides an easy way to access parameters from AWS Parameter Store
 type SSMConfiguration struct {
 	client       *ssm.SSM
