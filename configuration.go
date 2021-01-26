@@ -10,7 +10,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
-const defaultRegion = "eu-north-1"
+const (
+	defaultRegion       = "eu-north-1"
+	defaultKeyDelimitor = "_"
+)
 
 // Configuration interface
 // SSMConfiguration follows this interface
@@ -65,6 +68,10 @@ func NewSSMConfiguration(config SSMConfigurationInit) (*SSMConfiguration, error)
 
 	if err != nil {
 		return nil, fmt.Errorf("error initializing aws session - %w", err)
+	}
+
+	if config.KeyDelimitor == "" {
+		config.KeyDelimitor = defaultKeyDelimitor
 	}
 
 	return &SSMConfiguration{
