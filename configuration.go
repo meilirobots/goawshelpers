@@ -75,8 +75,9 @@ func NewSSMConfiguration(config SSMConfigurationInit) (*SSMConfiguration, error)
 	}
 
 	return &SSMConfiguration{
-		client: ssm.New(session, aws.NewConfig().WithRegion(region)),
-		env:    config.Env,
+		client:       ssm.New(session, aws.NewConfig().WithRegion(region)),
+		env:          config.Env,
+		keyDelimitor: config.KeyDelimitor,
 	}, nil
 }
 
