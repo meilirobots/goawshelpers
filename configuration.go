@@ -2,6 +2,7 @@ package goawshelpers
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -40,6 +41,20 @@ type SSMConfigurationInit struct {
 	AwsSecretAccessKey string
 	UseEnvParams       bool
 	Region             string
+}
+
+// EnvironmentConfiguration helps with managing environmental variables
+type EnvironmentConfiguration struct {
+	UseUpper bool
+	Values   map[string]string
+}
+
+// BiConfiguration checks both SSM key store and env for variables (SSM first)
+// If SSM configuration not provided it will act as regular EnvironmentConfiguration
+type BiConfiguration struct {
+	ssmConfiguration *SSMConfiguration
+	envConfiguration *EnvironmentConfiguration
+	values           map[string]string
 }
 
 // NewSSMConfiguration creates a new instance of SSMConfiguration based on the passed in parameters
@@ -154,6 +169,125 @@ func (c *SSMConfiguration) put(key, value string, overwrite bool) error {
 	})
 
 	return err
+}
+
+// Get returns the key from environment
+func (c *EnvironmentConfiguration) Get(key string) (string, error) {
+	value := os.Getenv(key)
+
+	if value != "" {
+		c.Values[key] = value
+	}
+
+	if value == "" {
+		return "", fmt.Errorf("no value with key %s", key)
+	}
+
+	return value, nil
+}
+
+// Set sets the environmental variable
+func (c *EnvironmentConfiguration) Set(key, value string) error {
+	err := os.Setenv(key, value)
+
+	if err != nil {
+		return fmt.Errorf("error setting environmental variable %s - %w", key, err)
+	}
+
+	c.Values[key] = value
+
+	return nil
+}
+
+// GetEnvironment returns all previously used variables
+func (c *EnvironmentConfiguration) GetEnvironment() (map[string]string, error) {
+	return c.Values, nil
+}
+
+// Delete destroys the variable from the environment and "cache"
+func (c *EnvironmentConfiguration) Delete(key string) error {
+	err := os.Unsetenv(key)
+
+	if err != nil {
+		return fmt.Errorf("error unsetting environmental variable %s - %w", key, err)
+	}
+	delete(c.Values, key)
+
+	return nil
+}
+
+// NewBiConfiguration returns a new instance of dual configuration
+func NewBiConfiguration(env EnvironmentConfiguration, ssmConfig *SSMConfigurationInit) (*BiConfiguration, error) {
+	config := &BiConfiguration{
+		envConfiguration: &env,
+	}
+
+	if ssmConfig != nil {
+		ssmConfiguration, err := NewSSMConfiguration(*ssmConfig)
+
+		if err != nil {
+			return nil, fmt.Errorf("error creating SSM configuration - %w", err)
+		}
+		config.ssmConfiguration = ssmConfiguration
+	}
+
+	return config, nil
+}
+
+// Get returns a value from configurations
+// First it checkks the ssm (if applicable) and then the env
+func (c *BiConfiguration) Get(key string) (string, error) {
+	if val, ok := c.values[key]; ok {
+		return val, nil
+	}
+
+	if c.ssmConfiguration != nil {
+		val, err := c.ssmConfiguration.Get(key)
+
+		if err == nil {
+			return val, nil
+		}
+	}
+
+	val, err := c.envConfiguration.Get(key)
+
+	if err != nil {
+		return "", err
+	}
+
+	return val, nil
+}
+
+// GetEnvironment returns all the variables from the ssm based on environment and also the loaded ones from local env
+func (c *BiConfiguration) GetEnvironment() (map[string]string, error) {
+	values, _ := c.envConfiguration.GetEnvironment()
+
+	if c.ssmConfiguration != nil {
+		sValues, err := c.ssmConfiguration.GetEnvironment()
+
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving environment - %w", err)
+		}
+
+		for k, v := range sValues {
+			values[k] = v
+		}
+	}
+
+	return values, nil
+}
+
+// Delete deletes the keys from both configurations
+func (c *BiConfiguration) Delete(key string) error {
+	if c.ssmConfiguration != nil {
+		c.ssmConfiguration.Delete(key)
+	}
+	c.envConfiguration.Delete(key)
+
+	delete(c.values, key)
+	delete(c.envConfiguration.Values, key)
+
+	return nil
 }
 
 func convertKeynameToPath(key, env, delimiter string) string {
