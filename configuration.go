@@ -164,7 +164,7 @@ func (c *SSMConfiguration) put(key, value string, overwrite bool) error {
 	_, err := c.client.PutParameter(&ssm.PutParameterInput{
 		Name:      aws.String(convertKeynameToPath(key, c.env, c.keyDelimitor)),
 		Value:     aws.String(value),
-		Type:      aws.String("string"),
+		Type:      aws.String("String"),
 		Overwrite: aws.Bool(overwrite),
 	})
 
