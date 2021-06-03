@@ -137,6 +137,20 @@ func (c *SSMConfiguration) Get(key string) (string, error) {
 	return *param.Parameter.Value, nil
 }
 
+// GetAndDecrypt returns a decrypted key from remote AWS SSM Parameter Store
+func (c *SSMConfiguration) GetAndDecrypt(key string) (string, error) {
+	param, err := c.client.GetParameter(&ssm.GetParameterInput{
+		Name:           aws.String(convertKeynameToPath(key, c.env, c.keyDelimitor)),
+		WithDecryption: aws.Bool(true),
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("error retrieving key %s with decryption - %w", key, err)
+	}
+
+	return *param.Parameter.Value, nil
+}
+
 // GetEnvironment returns all the keys existing inside the environment
 // Environment is taken from the *SSMConfiguration struct
 func (c *SSMConfiguration) GetEnvironment() (map[string]string, error) {
